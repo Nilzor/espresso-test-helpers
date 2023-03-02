@@ -21,21 +21,35 @@ import org.junit.Rule
  */
 @RunWith(AndroidJUnit4::class)
 class ExampleInstrumentedTest {
+   // OkHttp3IdlingResource.create("OkHttp", client) Mention why I don't use this
+    // - Specific per use case (not all delays are OkHttp). Cumbersome
 
     @get:Rule
     val scenario = ActivityScenarioRule(MainActivity::class.java)
 
     @Test
-    fun test() {
-        onView(withId(R.id.loadButton)).perform(click())
+    fun testWaitForThenClick_onElementNotPresent() {
         waitForThenClick(withId(R.id.textInSecondScreen))
+    }
+
+    @Test
+    fun testWaitAndCheckForText_elementGoneThenVisibleWithCorrectText() {
+        onView(withId(R.id.loadButton)).perform(click())
         waitAndCheckForText(R.id.loadingDoneIndicator, "Loading is done")
-        // OkHttp3IdlingResource.create("OkHttp", client) Mention why I don't use this
-        // - Specific per use case (not all delays are OkHttp). Cumbersome
+    }
+
+    @Test
+    fun executeUntilNotThrowing_waiting_for_text_content() {
+        onView(withId(R.id.loadButton)).perform(click())
         executeUntilNotThrowing(timeoutSeconds = 3) {
             onView(withId(R.id.loadTarget)).check(matches(withText("Content")))
         }
-        // Simplified to..:
-        waitAndCheckForText(R.id.loadTarget, "Content", timeoutSeconds = 3)
+    }
+
+    @Test
+    fun waitAndCheckForText() {
+        onView(withId(R.id.loadButton)).perform(click())
+        // executeUntilNotThrowing_waiting_for_text_content Simplified to..:
+        waitAndCheckForText(R.id.loadTarget, "Content", timeoutSeconds = 4)
     }
 }

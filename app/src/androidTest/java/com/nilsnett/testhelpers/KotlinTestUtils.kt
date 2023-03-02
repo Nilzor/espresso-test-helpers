@@ -1,6 +1,7 @@
 package com.nilsnett.testhelpers
 
 import android.app.Activity
+import android.util.Log
 import android.view.View
 import androidx.annotation.IdRes
 import androidx.test.core.app.ActivityScenario
@@ -13,6 +14,7 @@ import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.rules.ActivityScenarioRule
+import com.fasterxml.jackson.databind.util.ViewMatcher
 import org.hamcrest.Matcher
 
 /**
@@ -63,53 +65,52 @@ fun assertTrueWithinTimeout(condition: (() -> Boolean), action: () -> Unit, time
 
 /**
  * Waits for the [matcher] to be found and visible. Waits at most [timeoutSeconds] seconds.
- * Espresso will print the error message if it fails after the timeout
+ * Espresso will throw and print the error message if it fails after the timeout
  */
 fun checkForCompletelyDisplayed(matcher: Matcher<View>, timeoutSeconds: Long = 10): ViewInteraction {
-    val interaction = Espresso.onView(matcher)
     val assertion = matches(ViewMatchers.isCompletelyDisplayed())
-    executeUntilAssertionSucceeds(interaction, assertion, null, timeoutSeconds)
-    return interaction
+    executeUntilAssertionSucceeds(matcher, assertion, null, timeoutSeconds)
+    return Espresso.onView(matcher)
 }
 
 /**
  * Repeats optional [action] provided until the assertion succeeds or timeout happens
  */
-fun executeUntilAssertionSucceeds(interaction: ViewInteraction, assertion: ViewAssertion, action: (() -> Unit)?, timeoutSeconds: Long = 10) {
+fun executeUntilAssertionSucceeds(matcher: Matcher<View>, assertion: ViewAssertion, action: (() -> Unit)?, timeoutSeconds: Long = 10) {
     try {
+        val nonThrowingInteraction = matcher
+        Log.i("zzz", "zzz waituntilTru")
         waitUntilTrue(timeoutSeconds) {
             action?.invoke()
             var success = true
-            interaction
+            Espresso.onView(matcher)
                 .withFailureHandler { _, _ -> success = false }
                 .check(assertion)
+            Log.i("zzz", "Success ? $success")
             success
         }
     } catch (err: TimeoutAssertionError) {
         // Catch and let check below produce better error message
     }
-
-    interaction.check(assertion)
+    Log.i("zzz", "zzz running check ")
+    Espresso.onView(matcher).check(assertion)
 }
 
 /**
- * Waits for the a view [viewId] to be displayed then checks the [text] value. Works for TextView, Button, Switch, among others.
- * Waits a maximum of [timeoutSeconds] seconds. If it fails then an Espresso-formatted error message is rendered
+ * Waits for the a view [viewId] to be displayed then waits until the [text] value is as expected.
+ * Works for TextView, Button, Switch, among others.
+ * Waits a maximum of [timeoutSeconds] seconds in total. If it fails then Espresso will throw AssertionError
  */
 fun waitAndCheckForText(@IdRes viewId: Int, text: String, timeoutSeconds: Long = 10) {
-    // Check that the view exists and is visible
-    val interaction = Espresso.onView(withId(viewId))
-    try {
-        waitUntilTrue(timeoutSeconds) {
-            interaction.isDisplayed()
-        }
-    } catch (err: java.lang.AssertionError) {
-        // Redo the visibility check for a better error message instead of just "Timeout"
-        interaction.isDisplayed()
-    }
-
+    // First: Wait for visibility
+    val timeStart = System.currentTimeMillis()
+    val matcher = withId(viewId)
+    checkForCompletelyDisplayed(matcher, timeoutSeconds)
+    val secondsPassed = ((System.currentTimeMillis() - timeStart) / 1000).toInt()
+    val remainingTimeout = timeoutSeconds - secondsPassed
+    Log.i("zzz", "zzz remaining timeout: $remainingTimeout")
     // Check that the text value is as expected
-    interaction.check(matches(withText(text)))
+    executeUntilAssertionSucceeds(matcher, matches(withText(text)), null, remainingTimeout)
 }
 
 /**

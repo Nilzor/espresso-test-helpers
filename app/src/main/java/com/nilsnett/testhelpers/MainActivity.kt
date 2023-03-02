@@ -33,7 +33,9 @@ class MainActivity : AppCompatActivity() {
     fun loadStuff(view: View) {
         binding.loadingDoneIndicator.visibility = View.GONE
         lifecycleScope.launch {
-            delay(1000)
+            delay(1500)
+            binding.loadTarget.visibility = View.VISIBLE
+            delay(2000)
             binding.loadTarget.text = "Content"
             binding.loadingDoneIndicator.visibility = View.VISIBLE
         }
