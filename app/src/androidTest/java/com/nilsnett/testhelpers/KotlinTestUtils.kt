@@ -2,6 +2,7 @@ package com.nilsnett.testhelpers
 
 import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.annotation.IdRes
 import androidx.fragment.app.Fragment
@@ -33,7 +34,7 @@ fun waitUntil(timeoutSeconds: Long = 10, errorMessage: String? = null, condition
     } while (timeSpent < timeoutMs)
     var messageToPrint = "Timeout after $timeoutMs ms"
     if (errorMessage != null) messageToPrint = "$errorMessage - $messageToPrint"
-    throw AssertionError(messageToPrint)
+    throw TimeoutAssertionError(messageToPrint)
 }
 
 fun waitUntilNotThrowing(timeoutSeconds: Long = 10, action: (() -> Unit)) {
@@ -56,8 +57,8 @@ fun performUntil(condition: (() -> Boolean), action: () -> Unit, timeout: Long =
 }
 
 /**
- * Waits for the matcher to be true and visible for at most [timeoutSeconds] seconds. If it fails then
- * an Espresso-formatted error message is rendered
+ * Waits for the matcher to be found and visible. Waits at most [timeoutSeconds] seconds.
+ * Espresso will print the error message if it fails after the timeout
  */
 fun waitAndCheckFor(matcher: Matcher<View>, timeoutSeconds: Long = 10): ViewInteraction {
     val interaction = Espresso.onView(matcher)
@@ -66,15 +67,22 @@ fun waitAndCheckFor(matcher: Matcher<View>, timeoutSeconds: Long = 10): ViewInte
     return interaction
 }
 
+/**
+ * Repeats optional [action] provided until the assertion succeeds or timeout happens
+ */
 fun repeatUntil(interaction: ViewInteraction, assertion: ViewAssertion, action: (() -> Unit)?, timeoutSeconds: Long = 10) {
     try {
         waitUntil(timeoutSeconds) {
             action?.invoke()
-            tryCatchToBoolean{
-                interaction.check(assertion)
-            }
+            var success = true
+            interaction
+                .withFailureHandler { _, _ -> success = false }
+                .check(assertion)
+            success
         }
-    } catch (err: AssertionError) { } // Catch and let check below produce better error message
+    } catch (err: TimeoutAssertionError) {
+        // Catch and let check below produce better error message
+    }
 
     interaction.check(assertion)
 }
@@ -141,3 +149,5 @@ fun <T> ActivityScenario<T>.getActivityBlocking() : T where T : Activity {
 }
 
 fun <T> ActivityScenarioRule<T>.getActivityBlocking() : T where T : Activity = scenario.getActivityBlocking()
+
+class TimeoutAssertionError(message: String) : AssertionError(message)
