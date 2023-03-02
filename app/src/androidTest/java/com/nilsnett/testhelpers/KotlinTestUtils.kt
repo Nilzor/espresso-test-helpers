@@ -1,12 +1,8 @@
 package com.nilsnett.testhelpers
 
 import android.app.Activity
-import android.os.Bundle
-import android.util.Log
 import android.view.View
 import androidx.annotation.IdRes
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentResultListener
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.ViewAssertion
@@ -18,12 +14,13 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import org.hamcrest.Matcher
-import java.util.concurrent.atomic.AtomicReference
 
-/** Waits until a give Espresso matcher is true. Checks every 100ms but times out after a given
- * timeout that is by default set to 10 seconds. Increase if network traffic is involved when waiting.
+/**
+ * Waits until the [condition] function returns true to return. Blocks calling thread.
+ * If [condition] is still false after [timeoutSeconds], a TimeoutAssertionError will be thrown,
+ * optionally with custom [errorMessage]
  */
-fun waitUntil(timeoutSeconds: Long = 10, errorMessage: String? = null, condition: (() -> Boolean)) {
+fun waitUntilTrue(timeoutSeconds: Long = 10, errorMessage: String? = null, condition: (() -> Boolean)) {
     val intervalMs = 100L
     val timeoutMs = timeoutSeconds * 1000L
     val timeStart = System.currentTimeMillis()
@@ -37,7 +34,11 @@ fun waitUntil(timeoutSeconds: Long = 10, errorMessage: String? = null, condition
     throw TimeoutAssertionError(messageToPrint)
 }
 
-fun waitUntilNotThrowing(timeoutSeconds: Long = 10, action: (() -> Unit)) {
+/**
+ * Executes the [action] until it no longer throws an exception.
+ * If the action still throws after timeout, the exception will be not be caught.
+ */
+fun executeUntilNotThrowing(timeoutSeconds: Long = 10, action: (() -> Unit)) {
     val intervalMs = 100L
     val timeoutMs = timeoutSeconds * 1000L
     val timeStart = System.currentTimeMillis()
@@ -49,30 +50,34 @@ fun waitUntilNotThrowing(timeoutSeconds: Long = 10, action: (() -> Unit)) {
     action.invoke()
 }
 
-fun performUntil(condition: (() -> Boolean), action: () -> Unit, timeout: Long = 10) {
-    waitUntil(timeout, condition = {
+/**
+ * Executes the condition-checking lambda until it returns true. If it does not return true
+ * within the timeout period a TimeoutAssertionError will be thrown
+ */
+fun assertTrueWithinTimeout(condition: (() -> Boolean), action: () -> Unit, timeoutSeconds: Long = 10) {
+    waitUntilTrue(timeoutSeconds, condition = {
         if (!condition()) action.invoke()
         condition.invoke()
     })
 }
 
 /**
- * Waits for the matcher to be found and visible. Waits at most [timeoutSeconds] seconds.
+ * Waits for the [matcher] to be found and visible. Waits at most [timeoutSeconds] seconds.
  * Espresso will print the error message if it fails after the timeout
  */
-fun waitAndCheckFor(matcher: Matcher<View>, timeoutSeconds: Long = 10): ViewInteraction {
+fun checkForCompletelyDisplayed(matcher: Matcher<View>, timeoutSeconds: Long = 10): ViewInteraction {
     val interaction = Espresso.onView(matcher)
     val assertion = matches(ViewMatchers.isCompletelyDisplayed())
-    repeatUntil(interaction, assertion, null, timeoutSeconds)
+    executeUntilAssertionSucceeds(interaction, assertion, null, timeoutSeconds)
     return interaction
 }
 
 /**
  * Repeats optional [action] provided until the assertion succeeds or timeout happens
  */
-fun repeatUntil(interaction: ViewInteraction, assertion: ViewAssertion, action: (() -> Unit)?, timeoutSeconds: Long = 10) {
+fun executeUntilAssertionSucceeds(interaction: ViewInteraction, assertion: ViewAssertion, action: (() -> Unit)?, timeoutSeconds: Long = 10) {
     try {
-        waitUntil(timeoutSeconds) {
+        waitUntilTrue(timeoutSeconds) {
             action?.invoke()
             var success = true
             interaction
@@ -95,7 +100,7 @@ fun waitAndCheckForText(@IdRes viewId: Int, text: String, timeoutSeconds: Long =
     // Check that the view exists and is visible
     val interaction = Espresso.onView(withId(viewId))
     try {
-        waitUntil(timeoutSeconds) {
+        waitUntilTrue(timeoutSeconds) {
             interaction.isDisplayed()
         }
     } catch (err: java.lang.AssertionError) {
@@ -107,23 +112,13 @@ fun waitAndCheckForText(@IdRes viewId: Int, text: String, timeoutSeconds: Long =
     interaction.check(matches(withText(text)))
 }
 
+/**
+ * Waits for [viewMatcher] at most [timeoutSeconds] seconds to be visible then clicks it
+ */
 fun waitForThenClick(viewMatcher: Matcher<View>, timeoutSeconds: Long = 10) {
     val viewInteraction = Espresso.onView(viewMatcher)
-    waitAndCheckFor(viewMatcher, timeoutSeconds)
+    checkForCompletelyDisplayed(viewMatcher, timeoutSeconds)
     viewInteraction.perform(ViewActions.click())
-}
-
-var waitMultiplicator: Int = 1
-
-fun testWait(ms: Int) {
-    // Added a sleep statement to match the app's execution delay.
-    // The recommended way to handle such scenarios is to use Espresso idling resources:
-    // https://google.github.io/android-testing-support-library/docs/espresso/idling-resource/index.html
-    try {
-        Thread.sleep(waitMultiplicator * ms.toLong())
-    } catch (e: InterruptedException) {
-        e.printStackTrace()
-    }
 }
 
 fun ViewInteraction.isDisplayed(): Boolean {
@@ -144,7 +139,7 @@ fun tryCatchToBoolean(action: () -> Unit): Boolean {
 fun <T> ActivityScenario<T>.getActivityBlocking() : T where T : Activity {
     var activity: T? = null
     this.onActivity { activity = it }
-    waitUntil { activity != null }
+    waitUntilTrue { activity != null }
     return activity!!
 }
 

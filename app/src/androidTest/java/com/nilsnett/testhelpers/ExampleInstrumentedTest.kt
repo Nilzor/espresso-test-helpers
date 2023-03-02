@@ -1,13 +1,11 @@
 package com.nilsnett.testhelpers
 
-import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.rules.ActivityScenarioRule
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import org.junit.Test
@@ -34,7 +32,7 @@ class ExampleInstrumentedTest {
         waitAndCheckForText(R.id.loadingDoneIndicator, "Loading is done")
         // OkHttp3IdlingResource.create("OkHttp", client) Mention why I don't use this
         // - Specific per use case (not all delays are OkHttp). Cumbersome
-        waitUntilNotThrowing(timeoutSeconds = 3) {
+        executeUntilNotThrowing(timeoutSeconds = 3) {
             onView(withId(R.id.loadTarget)).check(matches(withText("Content")))
         }
         // Simplified to..:
