@@ -38,7 +38,7 @@ fun waitUntilTrue(timeoutSeconds: Long = 10, errorMessage: String? = null, condi
  * Executes the [action] until it no longer throws an exception.
  * If the action still throws after timeout, the exception will be not be caught.
  */
-fun executeUntilNotThrowing(timeoutSeconds: Long = 10, action: (() -> Unit)) {
+fun waitUntilNotThrowing(timeoutSeconds: Long = 10, action: (() -> Unit)) {
     val intervalMs = 100L
     val timeoutMs = timeoutSeconds * 1000L
     val timeStart = System.currentTimeMillis()

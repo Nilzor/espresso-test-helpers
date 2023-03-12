@@ -26,18 +26,24 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-
     }
 
     fun loadStuff(view: View) {
-        binding.loadingDoneIndicator.visibility = View.GONE
+        reset()
+        binding.progressbar.visibility = View.VISIBLE
         lifecycleScope.launch {
-            delay(1500)
-            binding.loadTarget.visibility = View.VISIBLE
-            delay(2000)
-            binding.loadTarget.text = "Content"
+            delay (2000)
+            binding.progressbar.visibility = View.GONE
+            binding.contentTextView.visibility = View.VISIBLE
+            binding.contentTextView.text = "Content"
             binding.loadingDoneIndicator.visibility = View.VISIBLE
         }
+    }
+
+    fun reset() {
+        binding.progressbar.visibility = View.GONE
+        binding.contentTextView.visibility = View.GONE
+        binding.loadingDoneIndicator.visibility = View.GONE
+        binding.contentTextView.text = ""
     }
 }
