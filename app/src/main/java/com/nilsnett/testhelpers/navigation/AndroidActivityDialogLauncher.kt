@@ -31,6 +31,7 @@ class AndroidActivityDialogLauncher : ActivityDialogLauncher,
     )
 
     companion object {
+        const val ROTATION_ID_KEY = "ROTATION_ID"
         private var DIALOG_REQ_CODE = 1 // Increase by 1 each time a new dialog is shown
 
         // Reference to active dialog continuation. Needs to be global for device rotation support

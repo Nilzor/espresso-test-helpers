@@ -7,10 +7,20 @@
     android:orientation="vertical">
 
 
-    <TextView
-        android:id="@+id/textInSecondScreen"
+    <Button
+        android:id="@+id/ok"
         android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:text="Yo"
+        android:layout_height="60dp"
+        android:layout_margin="16dp"
+        android:onClick="onOk"
+        android:text="OK"
     />
+    <Button
+        android:id="@+id/cancel"
+        android:layout_margin="16dp"
+        android:layout_width="200dp"
+        android:layout_height="60dp"
+        android:onClick="onCancel"
+        android:text="Cancel"
+        />
 </LinearLayout>

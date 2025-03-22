@@ -1,10 +1,12 @@
 package com.nilsnett.testhelpers
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import android.view.View
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import com.nilsnett.testhelpers.databinding.ActivityMainBinding
@@ -16,6 +18,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.*
 import kotlin.coroutines.resumeWithException
 
 class MainActivity : AppCompatActivity() {
@@ -23,20 +26,35 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var activityDialogLauncher: ActivityDialogLauncher  = AndroidActivityDialogLauncher()
 
+    lateinit var rotationId: String
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        rotationId = savedInstanceState?.getString(AndroidActivityDialogLauncher.ROTATION_ID_KEY, null)
+            ?: UUID.randomUUID().toString()
+        (activityDialogLauncher as AndroidActivityDialogLauncher).onCreate(this, rotationId)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString(AndroidActivityDialogLauncher.ROTATION_ID_KEY, rotationId)
+        super.onSaveInstanceState(outState)
     }
 
     val activityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         // Handle result from navigateTo()
     }
 
+    fun navigateTo(view: View) {
+        lifecycleScope.launch { navigateTo() }
+    }
+
     suspend fun navigateTo() {
         val result = activityDialogLauncher.startForResult(Intent(this, SecondActivity::class.java) ,0)
-        // Handle result
+        Log.i("MainActivity", "Got result: ${result.resultCode}")
+        val textRes = if (result.resultCode == Activity.RESULT_OK) "OK" else "Cancel"
+        Toast.makeText(this, "Got result: $textRes", Toast.LENGTH_SHORT).show()
     }
 
     fun startaa(view: View) {
